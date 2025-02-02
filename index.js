@@ -1,0 +1,590 @@
+require('dotenv').config();
+const TelegramBot = require('node-telegram-bot-api')
+const path = require('path');
+const axios = require('axios')
+const TOKEN = "7202274863:AAEv-c1USXfgZRyfN7gjTDwt21rj1F-laLo"
+console.log("Бот запущен...");
+const languages = {
+    en: require('./locales/en'),
+    ru: require('./locales/ru'),
+    uz: require('./locales/uz')
+};
+const branches = require('./data/branches')
+
+bot = new TelegramBot(TOKEN, {
+    polling: {
+        interval: 300,
+        autoStart: true,
+        params:{
+            timeout: 10
+        }
+    }
+})
+const userSessions = {};
+bot.onText(/\/start/,  (msg) => {
+    const chatId = msg.chat.id
+    const session = userSessions[chatId]
+    const options={
+       reply_markup: JSON.stringify({
+          inline_keyboard:[
+              // [{text: 'Русский 🇷🇺'}, {text: 'O\'zbekcha 🇺🇿'}, {text: 'English 🇺🇸'}]
+              [{ text: 'English 🇺🇸', callback_data: 'lang_en' }],
+              [{ text: 'Русский 🇷🇺', callback_data: 'lang_ru' }],
+              [{ text: 'O\'zbekcha 🇺🇿', callback_data: 'lang_uz' }]
+          ],
+           resize_keyboard: true,
+           one_time_keyboard: true
+       })
+    }
+     bot.sendMessage(chatId, 'Choose language / Выберите язык / Tilni tanlang:', options)
+    userSessions[chatId] = {
+        step: 'choose_lang'
+    }
+})
+
+bot.on('callback_query', (query)=> {
+    const chatId = query.message.chat.id
+    if(!userSessions[chatId] || userSessions[chatId].step !== 'choose_lang') return
+    const langCode = query.data.split('_')[1]
+    if(['en', 'ru', 'uz'].includes(langCode)){
+        userSessions[chatId] = {
+            lang: langCode,
+            step: 'request_phone'
+        }
+        const langData = languages[langCode];
+        const phoneRequestOption = {
+            reply_markup: JSON.stringify({
+                keyboard: [[{text: langData.myNumber || 'Share contact', request_contact: true}]],
+                resize_keyboard: true,
+                one_time_keyboard: true
+            })
+        }
+        bot.sendMessage(chatId, `${langData.selectedLang}\n${langData.sendNumber} \n+998 ** *** ****`, phoneRequestOption)
+    }
+})
+
+// Phone number handler
+bot.on('message', (msg) => {
+    const chatId = msg.chat.id;
+    const session = userSessions[chatId];
+
+    if (!session || session.step !== 'request_phone') return;
+
+    const langData = languages[session.lang];
+    let phone = '';
+
+    if (msg.contact) {
+        phone = msg.contact.phone_number;
+    } else if (msg.text.match(/^\d{12}$/)) {
+        phone = msg.text.trim();
+    }
+
+    if (phone) {
+        session.phone = phone;
+        session.name = msg.chat.first_name
+        session.step = 'choose_location'; // Next step: choose location
+
+        // Create location selection keyboard
+        const locationKeyboard = {
+            reply_markup: JSON.stringify({
+                inline_keyboard: branches.map(branch => [
+                    { text: branch.name, callback_data: `location_${branch.code}` }
+                ])
+            })
+        };
+
+        bot.sendMessage(chatId, `${langData.validNumber}\n${langData.choose_location}`, locationKeyboard);
+    } else {
+        bot.sendMessage(chatId, langData.invalidNumberFormat || "Please provide a valid phone number");
+    }
+});
+// Location selection handler and Main menu
+bot.on('callback_query', async (query) => {
+    const chatId = query.message.chat.id;
+    const session = userSessions[chatId];
+    if (!session || session.step !== 'choose_location') return;
+
+    const locationCode = query.data.split('_')[1];
+    const selectedLocation = branches.find(branch => branch.code === locationCode);
+
+    if (selectedLocation) {
+        session.location = selectedLocation; // Store location in session
+        session.step = 'main_menu'; // Next step: request phone number
+
+        const langData = languages[session.lang];
+        const mainMenuKeyboard = {
+            reply_markup: JSON.stringify({
+                keyboard: [
+                    [langData.main_menu.services, langData.main_menu.branches],
+                    [langData.main_menu.feedback, langData.main_menu.settings],
+                ],
+                resize_keyboard: true,
+                one_time_keyboard: false
+            })
+        };
+        const videoPath = path.join(__dirname, 'public', 'images', 'Banner.mp4');
+       await bot.sendVideo(chatId, videoPath)
+       await bot.sendMessage(chatId, `${langData.location_selected.replace('{location}', selectedLocation.name)}\n${langData.greeting}`, mainMenuKeyboard);
+    }
+});
+
+bot.on('message', (msg)=> {
+    const chatId = msg.chat.id
+    const session = userSessions[chatId]
+
+    if(!session || session.step !== 'main_menu') return
+
+    const langData = languages[session.lang]
+    const text = msg.text
+// Main Menu Keyboards
+    switch(text){
+        //Services keyboard
+       case langData.main_menu.services:
+        const serviceKeyboard = {
+            reply_markup: JSON.stringify({
+                keyboard: [
+                    [langData.services.plumber, langData.services.electrician],
+                    [langData.goBack],
+                ],
+                resize_keyboard: true,
+                one_time_keyboard: false
+            })
+        }
+        bot.sendMessage(chatId, langData.serviceTypeMessage, serviceKeyboard)
+        session.step = 'services_menu'
+            break
+        //Feedback Keyboard
+        case langData.main_menu.feedback:
+            const feedback_message = `<b>${langData.call_center}</b> (33) 660-21-21`
+            bot.sendMessage(chatId, feedback_message, {parse_mode: "HTML"})
+            break
+        //Branches Keyboard
+        case langData.main_menu.branches:
+            const branchesKeyboard = {
+                reply_markup: JSON.stringify({
+                    keyboard: [
+                        [session.location.name],
+                        [langData.goBack]
+                    ],
+                    resize_keyboard: true,
+                    one_time_keyboard: false
+                })
+            }
+            bot.sendMessage(chatId, langData.our_branches, branchesKeyboard)
+            session.step = 'branches_cities_menu'
+            break
+        case langData.main_menu.settings:
+            const settingKeyboard = {
+                reply_markup: JSON.stringify({
+                    keyboard: [
+                        [langData.goBack, langData.settings.change_name],
+                        [langData.settings.change_city, langData.settings.change_language],
+                        [langData.settings.logout]
+                    ],
+                    resize_keyboard: true,
+                    one_time_keyboard: false
+                })
+            }
+            bot.sendMessage(chatId, 'Выберите действие:', settingKeyboard)
+            session.step = 'setting_menu'
+    }
+
+})
+//Service select menu
+bot.on('message', (msg) => {
+    const chatId = msg.chat.id;
+    const session = userSessions[chatId];
+
+    if (!session || session.step !== 'services_menu' ) return;
+
+    const langData = languages[session.lang];
+    const service = msg.text;
+
+    if (service === langData.goBack) {
+       session.step = 'main_menu'
+    } else if(service === langData.services.electrician || service === langData.services.plumber) {
+        // Use location in service request
+        const location = session.location.name;
+        bot.sendMessage(chatId, `${langData.selectedService || "Service selected:"} ${service} ${langData.in} ${location}`);
+    }
+});
+const getMainMenuKeyboard = (langData) => {
+    return {
+        reply_markup: JSON.stringify({
+            keyboard: [
+                [langData.main_menu.services, langData.main_menu.branches],
+                [langData.main_menu.feedback, langData.main_menu.settings],
+            ],
+            resize_keyboard: true,
+            one_time_keyboard: false
+        })
+    };
+};
+// Handle "Back to Main Menu" button
+bot.on('message', (msg) => {
+    const chatId = msg.chat.id;
+    const session = userSessions[chatId];
+
+    if (!session) return;
+
+    const langData = languages[session.lang];
+    const text = msg.text;
+
+    // Check if the user clicked "Back to Main Menu"
+    if (text === langData.goBack) {
+        session.step = 'main_menu'; // Update session step
+        bot.sendMessage(chatId, langData.main_menu_prompt, getMainMenuKeyboard(langData));
+    }
+});
+
+bot.on('message', async (msg)=> {
+    const chatId = msg.chat.id
+    const session = userSessions[chatId]
+    const text =  msg.text
+
+    if(!session || session.step !== 'branches_cities_menu') return
+
+    const langData = languages[session.lang]
+
+    if(text === session.location.name){
+        const branch_info = `
+        <b>ArzonUsta</b>
+<code>${session.location.address.trim()}</code>
+${session.location.work_time.trim()}
+        `
+        const latitude = '39.774232'
+        const longitude = '64.412211'
+       await bot.sendMessage(chatId, branch_info, {parse_mode:"HTML"})
+       await bot.sendLocation(chatId, latitude, longitude)
+    }
+})
+
+//Settings Menu
+bot.on('message', (msg)=>{
+    const chatId = msg.chat.id
+    const session = userSessions[chatId]
+    const text = msg.text
+
+    if(!session || session.step !== 'setting_menu') return
+
+    const langData = languages[session.lang]
+//Settings Keyboards
+    switch (text){
+        //Change language Keyboard Click
+        case langData.settings.change_language:
+           session.step = 'setting_menu'
+            break
+        //Change name Keyboard Click
+        case langData.settings.change_name:
+            session.step = 'setting_menu'
+            break
+    }
+})
+
+//Change name Settings button Clicked
+bot.on('message', async (msg)=>{
+    const chatId = msg.chat.id
+    const session = userSessions[chatId]
+    const text = msg.text
+
+    if(!session || session.step !== 'setting_menu') return
+    const newName = msg.text
+    const langData = languages[session.lang]
+    if(text === langData.settings.change_name){
+            const changeNameKeyboard={
+                reply_markup: JSON.stringify({
+                    keyboard: [
+                        [langData.go_back.settings_goBack]
+                    ],
+                    resize_keyboard: true,
+                    one_time_keyboard: false
+                })
+            }
+            await bot.sendMessage(chatId, langData.enter_new_name.replace('{name}', ''), changeNameKeyboard)
+            session.step = 'change_name'
+    }else if(text === langData.settings.change_language){
+        const chooseLangKeyboard = {
+            reply_markup: JSON.stringify({
+                inline_keyboard: [
+                    [{ text: 'English 🇺🇸', callback_data: 'lang_en' },
+                        { text: 'Русский 🇷🇺', callback_data: 'lang_ru' },
+                        { text: 'O\'zbekcha 🇺🇿', callback_data: 'lang_uz' }],
+                ],
+                resize_keyboard: true,
+                one_time_keyboard: false
+            })
+        }
+        await bot.sendMessage(chatId, langData.selectLang, chooseLangKeyboard)
+        session.step = 'change_language';
+    }
+})
+bot.on('callback_query', async (msg)=>{
+    const chatId = msg.message.chat.id
+    const session = userSessions[chatId]
+   if(!session || session.step !== 'change_language') return
+    const langCode = msg.data.split('_')[1]
+    if(['en', 'ru', 'uz'].includes(langCode)){
+        session.lang = langCode // Update language in session
+        session.step = 'setting_menu' // Stay in settings menu
+        const langData = languages[langCode]
+        await bot.sendMessage(chatId, langData.language_updated.replace('{language}', langCode))
+
+        const settingKeyboard = {
+            reply_markup: JSON.stringify({
+                keyboard: [
+                    [langData.goBack, langData.settings.change_name],
+                    [langData.settings.change_city, langData.settings.change_language],
+                    [langData.settings.logout]
+                ],
+                resize_keyboard: true,
+                one_time_keyboard: false
+            })
+        }
+
+        await bot.sendMessage(chatId, langData.choose_action, settingKeyboard)
+    }
+})
+// Handle new name input with async/await and error handling
+bot.on('message', async (msg)=>{
+    const chatId = msg.chat.id
+    const session = userSessions[chatId]
+
+    if(!session || session.step !== 'change_name') return
+    const langData = languages[session.lang]
+    const text = msg.text
+
+    if(text=== langData.go_back.settings_goBack){
+        session.step = 'setting_menu'
+        const settingKeyboard = {
+            reply_markup: JSON.stringify({
+                keyboard: [
+                    [langData.goBack, langData.settings.change_name],
+                    [langData.settings.change_city, langData.settings.change_language],
+                    [langData.settings.logout]
+                ],
+                resize_keyboard: true,
+                one_time_keyboard: false
+            })
+        }
+        await bot.sendMessage(chatId, langData.choose_action, settingKeyboard)
+        return
+    }
+    if(text !== langData.settings.change_name && text !== langData.go_back.settings_goBack){
+        try{
+            //update name in session
+            session.name = text
+
+
+            // Send confirmation message
+            await bot.sendMessage(chatId, langData.name_updated.replace('{name}', session.name))
+            // Return to settings menu
+            session.step = 'setting_menu';
+            const settingKeyboard = {
+                reply_markup: JSON.stringify({
+                    keyboard: [
+                        [langData.goBack, langData.settings.change_name],
+                        [langData.settings.change_city, langData.settings.change_language],
+                        [langData.settings.logout]
+                    ],
+                    resize_keyboard: true,
+                    one_time_keyboard: false
+                })
+            }
+            await bot.sendMessage(chatId, langData.choose_action, settingKeyboard)
+        }catch (error){
+            console.error('Error updating name:', error);
+            bot.sendMessage(chatId, langData.error_occurred || "An error occurred. Please try again.");
+        }
+    }
+})
+
+// Service selection handler
+bot.on('message', async (msg) => {
+    const chatId = msg.chat.id;
+    const session = userSessions[chatId];
+    if (!session || session.step !== 'services_menu') return;
+
+    const langData = languages[session.lang];
+    const text = msg.text;
+
+    if (Object.values(langData.services).includes(text)) {
+        session.serviceRequest = {
+            service: text,
+            problemDescription: null,
+            media: [],
+            address: null
+        };
+        console.log(session.serviceRequest.service)
+
+        const specifyProblemKeyboard = {
+            reply_markup: JSON.stringify({
+                keyboard: [[langData.skip_button]],
+                resize_keyboard: true,
+                one_time_keyboard: true
+            })
+        };
+       await bot.sendMessage(chatId, langData.specify_problem, specifyProblemKeyboard);
+        session.step = 'specify_problem';
+    }
+});
+
+// Problem description handler - handles both text and photos
+bot.on('message', async (msg) => {
+    const chatId = msg.chat.id;
+    const session = userSessions[chatId];
+    if (!session || session.step !== 'specify_problem') return;
+
+    console.log('Handling problem description step');
+    const langData = languages[session.lang];
+    const request = session.serviceRequest;
+
+    // Handle skip button
+    if (msg.text === langData.skip_button) {
+        console.log('Skipping description');
+        request.problemDescription = "No description provided";
+        await proceedToAddressStep(chatId, session, langData);
+        return
+    }
+
+    // Handle text description
+    if (msg.text) {
+        console.log('Text description received:', msg.text);
+        request.problemDescription = msg.text;
+        await proceedToAddressStep(chatId, session, langData);
+        return
+    }
+
+    // Handle photos
+    if (msg.photo) {
+        console.log('Photo received with caption:', msg.caption);
+        request.media = msg.photo.map(p => p.file_id);
+        request.problemDescription = msg.caption || "Attached photos";
+        await proceedToAddressStep(chatId, session, langData);
+        return
+    }
+
+    // If none of the above, remind user
+    await bot.sendMessage(chatId, langData.specify_problem);
+});
+
+bot.on('message', async (msg) => {
+    const chatId = msg.chat.id;
+    const session = userSessions[chatId];
+    if (!session || session.step !== 'collect_address') return;
+
+    const langData = languages[session.lang];
+    const text = msg.text;
+
+    // Handle back to main menu
+    if (text === langData.goBack) {
+        session.step = 'main_menu';
+        return bot.sendMessage(chatId, langData.main_menu_prompt, getMainMenuKeyboard(langData));
+    }
+
+    // Validate text address
+    if (text && text.length >= 5) {
+        session.serviceRequest.address = text;
+        await completeServiceRequest(chatId, session, langData);
+    } else {
+        bot.sendMessage(chatId, langData.invalid_address);
+    }
+});
+// Handle location messages separately
+bot.on('location', async (msg) => {
+    const chatId = msg.chat.id;
+    const session = userSessions[chatId];
+    if (!session || session.step !== 'collect_address') return;
+
+    const langData = languages[session.lang];
+    const request = session.serviceRequest;
+
+    // Store location coordinates
+    request.address = {
+        latitude: msg.location.latitude,
+        longitude: msg.location.longitude
+    };
+
+    await completeServiceRequest(chatId, session, langData);
+});
+
+// Helper functions
+async function proceedToAddressStep(chatId, session, langData) {
+    console.log('Proceeding to address step');
+
+    const addressKeyboard = {
+        reply_markup: JSON.stringify({
+            keyboard: [
+                [{ text: langData.send_location,
+                    request_location: true }],
+                [langData.goBack]
+            ],
+            resize_keyboard: true,
+            one_time_keyboard: false
+        })
+    };
+    await bot.sendMessage(chatId, langData.enter_address, addressKeyboard);
+    session.step = 'collect_address';
+}
+
+async function completeServiceRequest(chatId, session, langData) {
+    try {
+        console.log('Completing service request:', session.serviceRequest);
+        await processServiceRequest(session);
+
+        delete session.serviceRequest;
+        session.step = 'main_menu';
+        const message = `
+        <b>${langData.request_received}</b>
+<b>${langData.soon_call}</b>
+        `
+        await bot.sendMessage(chatId, message, {
+            reply_markup: getMainMenuKeyboardd(langData),
+            parse_mode: "HTML"
+        });
+    } catch (error) {
+        console.error('Completion error:', error);
+        bot.sendMessage(chatId, langData.error_occurred);
+    }
+}
+
+function getMainMenuKeyboardd(langData) {
+    return {
+        reply_markup: JSON.stringify({
+            keyboard: [
+                [langData.main_menu.services,langData.main_menu.branches],
+                [langData.main_menu.feedback, langData.main_menu.settings],
+            ],
+            resize_keyboard: true,
+            one_time_keyboard: false
+        })
+    };
+}
+async function processServiceRequest(session) {
+    // Implement your actual request handling logic here
+    const requestData = {
+        user: session.phone,
+        name: session.name,
+        location: session.location,
+        ...session.serviceRequest,
+        timestamp: new Date().toISOString()
+    };
+}
+
+
+bot.on('polling_error', (error)=>{
+    console.error("Polling error:", error);
+})
+
+bot.on('message', (msg) => {
+    // Check if the message contains location data
+    if (msg.location) {
+        const chatId = msg.chat.id;
+        const location = msg.location; // This is the user's shared location
+
+        console.log(`Received location: Latitude ${location.latitude}, Longitude ${location.longitude}`);
+
+        // Respond to the user
+        bot.sendMessage(chatId, `Thank you! Your location: Latitude: ${location.latitude}, Longitude: ${location.longitude}`);
+    }
+});
+
