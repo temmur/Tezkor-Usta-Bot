@@ -2,7 +2,12 @@ require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api')
 const path = require('path');
 const axios = require('axios')
-const TOKEN = "7202274863:AAEv-c1USXfgZRyfN7gjTDwt21rj1F-laLo"
+const TOKEN = "7149629717:AAE-zovzN-94_FRAanRb_aYrNZU9VgAugSE"
+
+const { createClient } = require('@supabase/supabase-js');
+
+const supabase = require('./supabaseClient');
+
 console.log("Бот запущен...");
 const languages = {
     en: require('./locales/en'),
@@ -484,11 +489,12 @@ bot.on('message', async (msg) => {
     // Validate text address
     if (text && text.length >= 5) {
         session.serviceRequest.address = text;
-        await completeServiceRequest(chatId, session, langData);
+        await proceedToTimeReservationStep(chatId, session, langData);
     } else {
         bot.sendMessage(chatId, langData.invalid_address);
     }
 });
+
 // Handle location messages separately
 bot.on('location', async (msg) => {
     const chatId = msg.chat.id;
@@ -504,9 +510,56 @@ bot.on('location', async (msg) => {
         longitude: msg.location.longitude
     };
 
-    await completeServiceRequest(chatId, session, langData);
+    // await completeServiceRequest(chatId, session, langData);
+    await proceedToTimeReservationStep(chatId, session, langData)
 });
 
+//Handle Time reservation
+bot.on('message', async (msg)=>{
+    const chatId = msg.chat.id;
+    const session = userSessions[chatId];
+
+    if (!session || session.step !== 'time_reservation') return;
+
+    const request = session.serviceRequest;
+    const langData = languages[session.lang];
+    const text = msg.text;
+
+    if(text === langData.chooseTime){
+        console.log('I get EmergencyButton')
+        request.time_reservation = 'Emergency'
+        console.log(request)
+        await completeServiceRequest(chatId, session, langData)
+    }
+    else{
+        request.time_reservation =  text
+        console.log('CHoose time' + " " + request)
+        await completeServiceRequest(chatId, session, langData)
+    }
+})
+
+bot.on('message', async (msg)=>{
+    const chatId = msg.chat.id
+    const session = userSessions[chatId]
+    if(!session || session.step !== 'time_reservation') return
+    const langData = languages[session.lang]
+
+})
+
+async function proceedToTimeReservationStep(chatId, session, langData){
+    console.log('Proceeding to time reservation step')
+    const reservationKeyboard = {
+        reply_markup: JSON.stringify({
+            keyboard: [
+                [{text: langData.emergencyButton}]
+            ],
+            resize_keyboard: true,
+            one_time_keyboard: true
+        })
+    }
+    await bot.sendMessage(chatId, langData.chooseTime, reservationKeyboard)
+    session.step = 'time_reservation'
+}
 // Helper functions
 async function proceedToAddressStep(chatId, session, langData) {
     console.log('Proceeding to address step');
@@ -526,27 +579,6 @@ async function proceedToAddressStep(chatId, session, langData) {
     session.step = 'collect_address';
 }
 
-async function completeServiceRequest(chatId, session, langData) {
-    try {
-        console.log('Completing service request:', session.serviceRequest);
-        await processServiceRequest(session);
-
-        delete session.serviceRequest;
-        session.step = 'main_menu';
-        const message = `
-        <b>${langData.request_received}</b>
-<b>${langData.soon_call}</b>
-        `
-        await bot.sendMessage(chatId, message, {
-            reply_markup: getMainMenuKeyboardd(langData),
-            parse_mode: "HTML"
-        });
-    } catch (error) {
-        console.error('Completion error:', error);
-        bot.sendMessage(chatId, langData.error_occurred);
-    }
-}
-
 function getMainMenuKeyboardd(langData) {
     return {
         reply_markup: JSON.stringify({
@@ -556,20 +588,10 @@ function getMainMenuKeyboardd(langData) {
             ],
             resize_keyboard: true,
             one_time_keyboard: false
-        })
+        }),
+        parse_mode: 'HTML'
     };
 }
-async function processServiceRequest(session) {
-    // Implement your actual request handling logic here
-    const requestData = {
-        user: session.phone,
-        name: session.name,
-        location: session.location,
-        ...session.serviceRequest,
-        timestamp: new Date().toISOString()
-    };
-}
-
 
 bot.on('polling_error', (error)=>{
     console.error("Polling error:", error);
@@ -588,3 +610,55 @@ bot.on('message', (msg) => {
     }
 });
 
+
+
+//test supabse
+
+async function processServiceRequest(session) {
+    const requestData = {
+        user: session.phone,
+        name: session.name,
+        location: session.location.name,
+        service: session.serviceRequest.service,
+        problem_description: session.serviceRequest.problemDescription,
+        address: session.serviceRequest.address,
+        time_reservation: session.serviceRequest.time_reservation,
+        timestamp: new Date().toISOString()
+    };
+
+    console.log('Data to insert:', requestData);
+
+    const { data, error } = await supabase
+        .from('Users')
+        .insert([requestData]);
+
+    if (error) {
+        console.error('Error inserting data into Supabase:', {
+            message: error.message,
+            code: error.code,
+            details: error.details,
+            hint: error.hint
+        });
+        throw error;
+    }
+
+    console.log('Data inserted successfully:', data);
+}
+
+async function completeServiceRequest(chatId, session, langData) {
+    try {
+        console.log('Completing service request:', session.serviceRequest);
+        await processServiceRequest(session);
+
+        delete session.serviceRequest;
+        session.step = 'main_menu';
+        const message = `
+        <b>${langData.request_received}</b>
+        <b>${langData.soon_call}</b>
+        `;
+        await bot.sendMessage(chatId, message, getMainMenuKeyboardd(langData));
+    } catch (error) {
+        console.error('Completion error:', error);
+        bot.sendMessage(chatId, langData.error_occurred);
+    }
+}

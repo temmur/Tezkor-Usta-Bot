@@ -67,5 +67,7 @@ module.exports={
     invalid_address: "Iltimos, haqiqiy manzil yoki joylashuvni ko'rsating",
     request_received: "✅ Rahmat! Sizning so'rovingiz qabul qilindi.",
     in: "",
-    soon_call: 'Tez orada sizga qo\'ng\'iroq qilamiz'
+    soon_call: 'Tez orada sizga qo\'ng\'iroq qilamiz',
+    emergencyButton: "Tez orada",
+    chooseTime: "O'zizga qulay vaqtni tanlang"
 }

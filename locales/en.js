@@ -59,5 +59,7 @@ module.exports={
     invalid_address: "Please provide a valid address or location",
     request_received: "✅ Thank you! Your request has been received.",
     in: "in",
-    soon_call: 'We\'ll call you soon'
+    soon_call: 'We\'ll call you soon',
+    emergencyButton: "As soon as possible",
+    chooseTime: 'Choose time'
 }
