@@ -4,6 +4,7 @@ const path = require('path');
 const axios = require('axios')
 const TOKEN = "7149629717:AAE-zovzN-94_FRAanRb_aYrNZU9VgAugSE"
 
+
 const { createClient } = require('@supabase/supabase-js');
 
 const supabase = require('./supabaseClient');
@@ -16,7 +17,7 @@ const languages = {
 };
 const branches = require('./data/branches')
 
-bot = new TelegramBot(TOKEN, {
+const bot = new TelegramBot(TOKEN, {
     polling: {
         interval: 300,
         autoStart: true,
@@ -597,22 +598,7 @@ bot.on('polling_error', (error)=>{
     console.error("Polling error:", error);
 })
 
-bot.on('message', (msg) => {
-    // Check if the message contains location data
-    if (msg.location) {
-        const chatId = msg.chat.id;
-        const location = msg.location; // This is the user's shared location
 
-        console.log(`Received location: Latitude ${location.latitude}, Longitude ${location.longitude}`);
-
-        // Respond to the user
-        bot.sendMessage(chatId, `Thank you! Your location: Latitude: ${location.latitude}, Longitude: ${location.longitude}`);
-    }
-});
-
-
-
-//test supabse
 
 async function processServiceRequest(session) {
     const requestData = {
