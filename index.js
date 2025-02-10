@@ -3,6 +3,7 @@ const TelegramBot = require('node-telegram-bot-api')
 const path = require('path');
 const axios = require('axios')
 const TOKEN = "7149629717:AAE-zovzN-94_FRAanRb_aYrNZU9VgAugSE"
+const express = require('express');
 
 
 const { createClient } = require('@supabase/supabase-js');
@@ -18,14 +19,32 @@ const languages = {
 const branches = require('./data/branches')
 
 const bot = new TelegramBot(TOKEN, {
-    polling: {
-        interval: 300,
-        autoStart: true,
-        params:{
-            timeout: 10
-        }
-    }
+    // polling: {
+    //     interval: 300,
+    //     autoStart: true,
+    //     params:{
+    //         timeout: 10
+    //     }
+    // },
+    webHook: true
 })
+const app = express();
+// Указываем Webhook URL
+const WEBHOOK_URL = `https://tezkor-usta-bot.onrender.com/bot${TOKEN}`;
+bot.setWebHook(WEBHOOK_URL);
+
+app.use(express.json());
+
+// Обработчик запросов от Telegram
+app.post(`/bot${TOKEN}`, (req, res) => {
+    bot.processUpdate(req.body);
+    res.sendStatus(200);
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
 const userSessions = {};
 bot.onText(/\/start/,  (msg) => {
     const chatId = msg.chat.id
