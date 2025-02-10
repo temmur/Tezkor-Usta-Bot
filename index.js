@@ -1,5 +1,7 @@
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api')
+const path = require('path');
+const axios = require('axios')
 const TOKEN = "7149629717:AAE-zovzN-94_FRAanRb_aYrNZU9VgAugSE"
 
 const { createClient } = require('@supabase/supabase-js');
