@@ -5,9 +5,9 @@ const axios = require('axios')
 const TOKEN = "7149629717:AAE-zovzN-94_FRAanRb_aYrNZU9VgAugSE"
 const express = require('express');
 const twilio = require('twilio');
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const client = new twilio(accountSid, authToken);
+// const accountSid = process.env.TWILIO_ACCOUNT_SID;
+// const authToken = process.env.TWILIO_AUTH_TOKEN;
+const client = new twilio(ACc3632dc280fa915cea499dde0bade303, TWILIO_AUTH_TOKEN);
 
 const { createClient } = require('@supabase/supabase-js');
 
@@ -48,7 +48,7 @@ async function sendVerificationCode(phoneNumber, code) {
         const message = await client.messages.create({
             body: `Your verification code: ${code}`,
             to: '+' + phoneNumber,
-            from: process.env.TWILIO_PHONE_NUMBER, // Must be purchased number
+            from: +16815252392, // Must be purchased number
             validityPeriod: 300  // 5 minutes expiration
         });
         return true;
@@ -61,7 +61,6 @@ async function sendVerificationCode(phoneNumber, code) {
         return false;
     }
 }
-const userSessions = {};
 const getMainMenuKeyboard = (langData) => {
     return {
         reply_markup: JSON.stringify({
