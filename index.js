@@ -334,8 +334,8 @@ bot.on('message', (msg) => {
         session.step = 'main_menu'
     } else if(service === langData.services.electrician || service === langData.services.plumber || service === langData.services.welder) {
         // Use location in service request
-        const location = session.location.name;
-        bot.sendMessage(chatId, `${langData.selectedService || "Service selected:"} ${service} ${langData.in} ${location?.name || location}`);
+        const location = JSON.stringify(session.location)
+        bot.sendMessage(chatId, `${langData.selectedService || "Service selected:"} ${service} ${langData.in} ${location.name}`);
     }
 });
 
