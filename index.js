@@ -287,6 +287,7 @@ bot.on('message', (msg)=> {
         //Feedback Keyboard
         case langData.main_menu.feedback:
             const feedback_message = `<b>${langData.call_center}</b> (33) 660-21-21`
+            const locationButton = JSON.parse(session.location)
             bot.sendMessage(chatId, feedback_message, {parse_mode: "HTML"})
             break
         //Branches Keyboard
@@ -294,7 +295,7 @@ bot.on('message', (msg)=> {
             const branchesKeyboard = {
                 reply_markup: JSON.stringify({
                     keyboard: [
-                        [JSON.parse(session.location?.name)],
+                        [locationButton.name],
                         [langData.goBack]
                     ],
                     resize_keyboard: true,
