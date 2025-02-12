@@ -365,12 +365,12 @@ bot.on('message', async (msg)=> {
     if(!session || session.step !== 'branches_cities_menu') return
 
     const langData = languages[session.lang]
-
-    if(text === session.location.name){
+    const branches = JSON.parse(session.location)
+    if(text === branches.name){
         const branch_info = `
         <b>ArzonUsta</b>
-<code>${session.location.address.trim()}</code>
-${session.location.work_time.trim()}
+<code>${branches.address.trim()}</code>
+${branches.work_time.trim()}
         `
         const latitude = '39.774232'
         const longitude = '64.412211'
