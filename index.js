@@ -287,11 +287,11 @@ bot.on('message', (msg)=> {
         //Feedback Keyboard
         case langData.main_menu.feedback:
             const feedback_message = `<b>${langData.call_center}</b> (33) 660-21-21`
-            const locationButton = JSON.parse(session.location)
             bot.sendMessage(chatId, feedback_message, {parse_mode: "HTML"})
             break
         //Branches Keyboard
         case langData.main_menu.branches:
+            const locationButton = JSON.parse(session?.location?.name)
             const branchesKeyboard = {
                 reply_markup: JSON.stringify({
                     keyboard: [
