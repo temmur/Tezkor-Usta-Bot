@@ -62,5 +62,6 @@ module.exports={
     in: "in",
     soon_call: 'We\'ll call you soon',
     emergencyButton: "As soon as possible",
-    chooseTime: 'Choose time'
+    chooseTime: 'Choose time',
+    enterVerificationCode: 'Enter SMS verification'
 }

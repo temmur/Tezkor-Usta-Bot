@@ -70,5 +70,6 @@ module.exports={
     in: "",
     soon_call: 'Tez orada sizga qo\'ng\'iroq qilamiz',
     emergencyButton: "Tez orada",
-    chooseTime: "O'zizga qulay vaqtni tanlang"
+    chooseTime: "O'zizga qulay vaqtni tanlang",
+    enterVerificationCode: 'SMS tasdiqlashni kiriting'
 }
