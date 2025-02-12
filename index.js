@@ -335,7 +335,7 @@ bot.on('message', (msg) => {
     } else if(service === langData.services.electrician || service === langData.services.plumber || service === langData.services.welder) {
         // Use location in service request
         const location = JSON.stringify(session.location)
-        console.log('this is location' + location)
+        console.log('this is location' + location.name)
         bot.sendMessage(chatId, `${langData.selectedService || "Service selected:"} ${service} ${langData.in} ${location.name}`);
     }
 });
