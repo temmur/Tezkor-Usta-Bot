@@ -265,7 +265,6 @@ bot.on('message', (msg)=> {
     const session = userSessions[chatId]
 
     if(!session || session.step !== 'main_menu') return
-    console.log('I am in main menu function')
     const langData = languages[session.lang]
     const text = msg.text
 // Main Menu Keyboards
@@ -295,7 +294,7 @@ bot.on('message', (msg)=> {
             const branchesKeyboard = {
                 reply_markup: JSON.stringify({
                     keyboard: [
-                        [session.location.name],
+                        [session.location.name || session.location],
                         [langData.goBack]
                     ],
                     resize_keyboard: true,
