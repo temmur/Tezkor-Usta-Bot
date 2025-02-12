@@ -291,7 +291,7 @@ bot.on('message', (msg)=> {
             break
         //Branches Keyboard
         case langData.main_menu.branches:
-            const locationButton = JSON.parse(session?.location?.name)
+            const locationButton = JSON.parse(session?.location)
             const branchesKeyboard = {
                 reply_markup: JSON.stringify({
                     keyboard: [
