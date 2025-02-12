@@ -19,7 +19,8 @@ module.exports={
     invalidNumberFormat: "The phone number format is incorrect.",
     services:{
         electrician: "🔧 Electrician",
-        plumber: "🚰 Plumber"
+        plumber: "🚰 Plumber",
+        welder: "🛠 Welding"
     },
     serviceTypeMessage: "⚙️ Choose the service you need:",
     selectedService: "Selected service:",

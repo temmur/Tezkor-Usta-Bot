@@ -27,7 +27,8 @@ module.exports={
     invalidNumberFormat: "Telefon raqam noto'g'ri formatda.",
     services:{
         electrician: "🔧 Elektrikа",
-        plumber: "🚰 Santexnikа"
+        plumber: "🚰 Santexnikа",
+        welder: "🛠 Svarka xizmatlari"
     },
     serviceTypeMessage: "⚙️ Sizga kerakli xizmatni tanlang:",
     selectedService: "Tanlangan xizmat:",
