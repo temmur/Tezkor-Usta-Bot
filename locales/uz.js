@@ -37,7 +37,8 @@ module.exports={
         services: '🔧 Xizmatlar',
         branches: "📍 Bizning filiallar",
         feedback: '☎️ Aloqa',
-        settings: "⚙️ Sozlamalar"
+        settings: "⚙️ Sozlamalar",
+        worktime: "🕐 Ish vaqti"
     },
     call_center: "📲 Yagona call-markaz:",
     select_branches: "Filialni tanlang:",
@@ -71,5 +72,6 @@ module.exports={
     soon_call: 'Tez orada sizga qo\'ng\'iroq qilamiz',
     emergencyButton: "Tez orada",
     chooseTime: "O'zizga qulay vaqtni tanlang",
-    enterVerificationCode: 'SMS tasdiqlashni kiriting'
+    enterVerificationCode: 'SMS tasdiqlashni kiriting',
+    work_time: "Ботимиз соат 09:00 дан 21:00 гача фаол. Агар сизга хизмат керак бўлса, соат 22:00 дан 08:00 гача ягона call-центрга қўнғироқ қилинг."
 }

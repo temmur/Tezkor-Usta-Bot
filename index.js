@@ -72,7 +72,7 @@ const getMainMenuKeyboard = (langData) => {
     return {
         reply_markup: JSON.stringify({
             keyboard: [
-                [langData.main_menu.services, langData.main_menu.branches],
+                [langData.main_menu.services, langData.main_menu.worktime],
                 [langData.main_menu.feedback, langData.main_menu.settings],
             ],
             resize_keyboard: true,
@@ -311,7 +311,7 @@ bot.on('callback_query', async (query) => {
         const mainMenuKeyboard = {
             reply_markup: JSON.stringify({
                 keyboard: [
-                    [langData.main_menu.services, langData.main_menu.branches],
+                    [langData.main_menu.services, langData.main_menu.worktime],
                     [langData.main_menu.feedback, langData.main_menu.settings],
                 ],
                 resize_keyboard: true,
@@ -354,20 +354,23 @@ bot.on('message', (msg)=> {
             bot.sendMessage(chatId, feedback_message, {parse_mode: "HTML"})
             break
         //Branches Keyboard
-        case langData.main_menu.branches:
-            const locationButton = JSON.parse(session?.location)
-            const branchesKeyboard = {
-                reply_markup: JSON.stringify({
-                    keyboard: [
-                        [locationButton.name],
-                        [langData.goBack]
-                    ],
-                    resize_keyboard: true,
-                    one_time_keyboard: false
-                })
-            }
-            bot.sendMessage(chatId, langData.our_branches, branchesKeyboard)
-            session.step = 'branches_cities_menu'
+        // case langData.main_menu.branches:
+        //     const locationButton = JSON.parse(session?.location)
+        //     const branchesKeyboard = {
+        //         reply_markup: JSON.stringify({
+        //             keyboard: [
+        //                 [locationButton.name],
+        //                 [langData.goBack]
+        //             ],
+        //             resize_keyboard: true,
+        //             one_time_keyboard: false
+        //         })
+        //     }
+        //     bot.sendMessage(chatId, langData.our_branches, branchesKeyboard)
+        //     session.step = 'branches_cities_menu'
+        //     break
+        case langData.main_menu.worktime:
+            bot.sendMessage(chatId, langData.work_time)
             break
         case langData.main_menu.settings:
             const settingKeyboard = {
@@ -421,6 +424,8 @@ bot.on('message', (msg) => {
     }
 });
 
+
+//branches Location
 bot.on('message', async (msg)=> {
     const chatId = msg.chat.id
     const session = userSessions[chatId]

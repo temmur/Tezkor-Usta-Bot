@@ -29,7 +29,8 @@ module.exports={
         services: '🔧 Services',
         branches: "📍 Our branches",
         feedback: '☎️ Feedback',
-        settings: "⚙️ Settings"
+        settings: "⚙️ Settings",
+        worktime: "🕐 Work time"
     },
     call_center: "📲 Unified call center:",
     select_branches: "Choose a branch:",
@@ -63,5 +64,6 @@ module.exports={
     soon_call: 'We\'ll call you soon',
     emergencyButton: "As soon as possible",
     chooseTime: 'Choose time',
-    enterVerificationCode: 'Enter SMS verification'
+    enterVerificationCode: 'Enter SMS verification',
+    working_time: "Our bot operates from 9:00 AM to 9:00 PM. If you require any service, please call our unified call center between 10:00 PM and 8:00 AM"
 }
