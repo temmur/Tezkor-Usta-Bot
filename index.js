@@ -598,7 +598,7 @@ bot.on('message', async (msg) => {
             media: [],
             address: null
         };
-        console.log(session.serviceRequest.service)
+        // console.log(session.serviceRequest.service)
 
         const specifyProblemKeyboard = {
             reply_markup: JSON.stringify({
@@ -618,13 +618,13 @@ bot.on('message', async (msg) => {
     const session = userSessions[chatId];
     if (!session || session.step !== 'specify_problem') return;
 
-    console.log('Handling problem description step');
+    // console.log('Handling problem description step');
     const langData = languages[session.lang];
     const request = session.serviceRequest;
 
     // Handle skip button
     if (msg.text === langData.skip_button) {
-        console.log('Skipping description');
+        // console.log('Skipping description');
         request.problemDescription = "No description provided";
         await proceedToAddressStep(chatId, session, langData);
         return
@@ -632,7 +632,7 @@ bot.on('message', async (msg) => {
 
     // Handle text description
     if (msg.text) {
-        console.log('Text description received:', msg.text);
+        // console.log('Text description received:', msg.text);
         request.problemDescription = msg.text;
         await proceedToAddressStep(chatId, session, langData);
         return
@@ -640,7 +640,7 @@ bot.on('message', async (msg) => {
 
     // Handle photos
     if (msg.photo) {
-        console.log('Photo received with caption:', msg.caption);
+        // console.log('Photo received with caption:', msg.caption);
         request.media = msg.photo.map(p => p.file_id);
         request.problemDescription = msg.caption || "Attached photos";
         await proceedToAddressStep(chatId, session, langData);
@@ -705,14 +705,14 @@ bot.on('message', async (msg)=>{
     const text = msg.text;
 
     if(text === langData.chooseTime){
-        console.log('I get EmergencyButton')
+        // console.log('I get EmergencyButton')
         request.time_reservation = 'Emergency'
-        console.log(request)
+        // console.log(request)
         await completeServiceRequest(chatId, session, langData)
     }
     else{
         request.time_reservation =  text
-        console.log('CHoose time' + " " + request)
+        // console.log('CHoose time' + " " + request)
         await completeServiceRequest(chatId, session, langData)
     }
 })
@@ -726,7 +726,7 @@ bot.on('message', async (msg)=>{
 })
 
 async function proceedToTimeReservationStep(chatId, session, langData){
-    console.log('Proceeding to time reservation step')
+    // console.log('Proceeding to time reservation step')
     const reservationKeyboard = {
         reply_markup: JSON.stringify({
             keyboard: [
@@ -741,7 +741,7 @@ async function proceedToTimeReservationStep(chatId, session, langData){
 }
 // Helper functions
 async function proceedToAddressStep(chatId, session, langData) {
-    console.log('Proceeding to address step');
+    // console.log('Proceeding to address step');
 
     const addressKeyboard = {
         reply_markup: JSON.stringify({
@@ -790,7 +790,7 @@ async function processServiceRequest(session) {
         timestamp: new Date().toISOString()
     };
 
-    console.log('Data to insert:', requestData);
+    // console.log('Data to insert:', requestData);
 
     const { data, error } = await supabase
         .from('Users')
@@ -807,13 +807,13 @@ async function processServiceRequest(session) {
         throw error;
     }
 
-    console.log('Data inserted successfully:', data);
+    // console.log('Data inserted successfully:', data);
 }
 
 async function completeServiceRequest(chatId, session, langData) {
     try {
-        console.log('Completing service request:', session.serviceRequest);
-        console.log('this is session:' + session)
+        // console.log('Completing service request:', session.serviceRequest);
+        // console.log('this is session:' + session)
         await processServiceRequest(session);
         delete session.serviceRequest;
         session.step = 'main_menu';
