@@ -80,21 +80,37 @@ const getMainMenuKeyboard = (langData) => {
         })
     };
 };
+const userActivity = new Map(); // Хранение времени последней активности
 
-bot.onText(/\/start/, async (msg) => {
+bot.on("message", async (msg) => {
     const chatId = msg.chat.id;
-    // Log the chatId for debugging
+    const text = msg.text;
+
+    // Если бот недавно взаимодействовал с пользователем, игнорируем случайные сообщения
+    if (userActivity.has(chatId) && Date.now() - userActivity.get(chatId) < 5 * 60 * 1000) {
+        console.log(`Игнорируем сообщение от ${chatId}: ${text}`);
+        return;
+    }
+
+    // Обновляем время последней активности
+    userActivity.set(chatId, Date.now());
+
+    // Вызываем обработчик /start
+    startCommandHandler(chatId);
+});
+
+async function startCommandHandler(chatId) {
     console.log('User chatId:', chatId);
 
-    // Check if the user is already registered and verified
+    // Проверяем, зарегистрирован ли пользователь
     const { data: user, error } = await supabase
         .from('RegisteredUsers')
         .select('*')
         .eq('id', chatId)
-        .maybeSingle(); // Use maybeSingle() to handle no rows found
-    // Log the user data and error for debugging
+        .maybeSingle();
+
     if (user && user.verified) {
-        // User is already registered and verified, show main menu
+        // Пользователь уже зарегистрирован и верифицирован
         const langData = languages[user.lang];
         userSessions[chatId] = {
             step: 'main_menu',
@@ -103,29 +119,71 @@ bot.onText(/\/start/, async (msg) => {
             name: user.name,
             phone: user.phone
         };
-        console.log(userSessions[chatId])
+        console.log(userSessions[chatId]);
         bot.sendMessage(chatId, langData.greeting, getMainMenuKeyboard(langData));
         return;
     }
-    // User is not registered or not verified, proceed to language selection
+
+    // Пользователь не зарегистрирован – предложим выбрать язык
     const options = {
         reply_markup: JSON.stringify({
             inline_keyboard: [
                 [{ text: 'English 🇺🇸', callback_data: 'lang_en' }],
                 [{ text: 'Русский 🇷🇺', callback_data: 'lang_ru' }],
-                [{ text: 'O\'zbekcha 🇺🇿', callback_data: 'lang_uz' }]
+                [{ text: "O'zbekcha 🇺🇿", callback_data: 'lang_uz' }]
             ]
         })
     };
 
     bot.sendMessage(chatId, 'Choose language / Выберите язык / Tilni tanlang:', options);
-
-    userSessions[chatId] = {
-        step: 'choose_lang'
-    };
-
+    userSessions[chatId] = { step: 'choose_lang' };
     console.log('User session set to choose_lang:', userSessions[chatId]);
-});
+}
+// bot.onText(/\/start/, async (msg) => {
+//     const chatId = msg.chat.id;
+//     // Log the chatId for debugging
+//     console.log('User chatId:', chatId);
+//
+//     // Check if the user is already registered and verified
+//     const { data: user, error } = await supabase
+//         .from('RegisteredUsers')
+//         .select('*')
+//         .eq('id', chatId)
+//         .maybeSingle(); // Use maybeSingle() to handle no rows found
+//     // Log the user data and error for debugging
+//     if (user && user.verified) {
+//         // User is already registered and verified, show main menu
+//         const langData = languages[user.lang];
+//         userSessions[chatId] = {
+//             step: 'main_menu',
+//             lang: user.lang,
+//             location: user.address,
+//             name: user.name,
+//             phone: user.phone
+//         };
+//         console.log(userSessions[chatId])
+//         bot.sendMessage(chatId, langData.greeting, getMainMenuKeyboard(langData));
+//         return;
+//     }
+//     // User is not registered or not verified, proceed to language selection
+//     const options = {
+//         reply_markup: JSON.stringify({
+//             inline_keyboard: [
+//                 [{ text: 'English 🇺🇸', callback_data: 'lang_en' }],
+//                 [{ text: 'Русский 🇷🇺', callback_data: 'lang_ru' }],
+//                 [{ text: 'O\'zbekcha 🇺🇿', callback_data: 'lang_uz' }]
+//             ]
+//         })
+//     };
+//
+//     bot.sendMessage(chatId, 'Choose language / Выберите язык / Tilni tanlang:', options);
+//
+//     userSessions[chatId] = {
+//         step: 'choose_lang'
+//     };
+//
+//     console.log('User session set to choose_lang:', userSessions[chatId]);
+// });
 
 bot.on('callback_query', (query)=> {
     const chatId = query.message.chat.id
