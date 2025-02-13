@@ -37,6 +37,12 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+setInterval(() => {
+    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setWebhook?url=${WEBHOOK_URL}`)
+        .then(response => response.json())
+        .then(data => console.log("Webhook updated:", data))
+        .catch(error => console.error("Failed to update webhook:", error));
+}, 10 * 60 * 1000);
 const userSessions = {};
 
 const twilio = require('twilio');
