@@ -350,7 +350,7 @@ bot.on('message', (msg)=> {
             break
         //Feedback Keyboard
         case langData.main_menu.feedback:
-            const feedback_message = `<b>${langData.call_center}</b> (33) 660-21-21`
+            const feedback_message = `<b>${langData.call_center}</b> (93) 392-15-51`
             bot.sendMessage(chatId, feedback_message, {parse_mode: "HTML"})
             break
         //Branches Keyboard
