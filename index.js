@@ -250,7 +250,8 @@ bot.on('message', async (msg) => {
     const langData = languages[session.lang];
     // const userCode = msg.text.trim();
 
-    if (session.phone) {
+    // if (userCode === session.verificationCode) {
+    if(session.phone){
         // Code is correct, proceed to the next step
         session.verified = true;
         bot.sendMessage(chatId, langData.validNumber);
@@ -402,8 +403,8 @@ bot.on('message', (msg) => {
         session.step = 'main_menu'
     } else if(service === langData.services.electrician || service === langData.services.plumber || service === langData.services.welder) {
         // Use location in service request
-        const location = JSON.parse(session.location)
-        bot.sendMessage(chatId, `${langData.selectedService || "Service selected:"} ${service} ${langData.in} ${location.name}`);
+        const location = JSON.parse(session?.location)
+        bot.sendMessage(chatId, `${langData.selectedService || "Service selected:"} ${service} ${langData.in} ${location?.name}`);
     }
 });
 
@@ -438,8 +439,8 @@ bot.on('message', async (msg)=> {
     if(text === branches.name){
         const branch_info = `
         <b>ArzonUsta</b>
-<code>${branches.address.trim()}</code>
-${branches.work_time.trim()}
+<code>${branches?.address.trim()}</code>
+${branches?.work_time.trim()}
         `
         const latitude = '39.774232'
         const longitude = '64.412211'
