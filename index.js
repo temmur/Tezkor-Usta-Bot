@@ -403,8 +403,11 @@ bot.on('message', (msg) => {
         session.step = 'main_menu'
     } else if(service === langData.services.electrician || service === langData.services.plumber || service === langData.services.welder) {
         // Use location in service request
-        const location = JSON.parse(session?.location)
-        const loc = JSON.stringify(session?.location)
+        // const location = JSON.parse(session?.location)
+        const location = typeof session?.location === 'string'
+            ? JSON.parse(session.location)
+            : session?.location;
+
         // console.log(session.location)
         bot.sendMessage(chatId, `${langData.selectedService || "Service selected:"} ${service} ${langData.in} ${location?.name || 'Buxoro'}`);
     }
