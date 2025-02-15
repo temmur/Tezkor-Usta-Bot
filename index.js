@@ -50,24 +50,24 @@ const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const client = new twilio(accountSid, authToken);
 
-async function sendVerificationCode(phoneNumber, code) {
-    try {
-        const message = await client.messages.create({
-            body: `Your verification code: ${code}`,
-            to: '+' + phoneNumber,
-            from: process.env.TWILIO_PHONE_NUMBER, // Must be purchased number
-            validityPeriod: 300  // 5 minutes expiration
-        });
-        return true;
-    } catch (error) {
-        console.error('Twilio Error Details:', {
-            code: error.code,
-            message: error.message,
-            moreInfo: error.more_info
-        });
-        return false;
-    }
-}
+// async function sendVerificationCode(phoneNumber, code) {
+//     try {
+//         const message = await client.messages.create({
+//             body: `Your verification code: ${code}`,
+//             to: '+' + phoneNumber,
+//             from: process.env.TWILIO_PHONE_NUMBER, // Must be purchased number
+//             validityPeriod: 300  // 5 minutes expiration
+//         });
+//         return true;
+//     } catch (error) {
+//         console.error('Twilio Error Details:', {
+//             code: error.code,
+//             message: error.message,
+//             moreInfo: error.more_info
+//         });
+//         return false;
+//     }
+// }
 const getMainMenuKeyboard = (langData) => {
     return {
         reply_markup: JSON.stringify({
@@ -228,11 +228,11 @@ bot.on('message', async (msg) => {
         session.phone = phone;
         session.name = msg.chat.first_name
         // bot.sendMessage(chatId, `${langData.validNumber}\n${langData.choose_location}`, locationKeyboard);
-        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-        session.verificationCode = verificationCode;
+        // const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        // session.verificationCode = verificationCode;
 
         // Send the verification code via SMS
-        await sendVerificationCode(phone, verificationCode);
+        // await sendVerificationCode(phone, verificationCode);
 
         // Prompt the user to enter the verification code
         bot.sendMessage(chatId, langData.enterVerificationCode);

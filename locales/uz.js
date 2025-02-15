@@ -73,5 +73,5 @@ module.exports={
     emergencyButton: "Tez orada",
     chooseTime: "O'zizga qulay vaqtni tanlang",
     enterVerificationCode: 'SMS tasdiqlashni kiriting',
-    work_time: "Ботимиз соат 09:00 дан 21:00 гача фаол. Агар сизга хизмат керак бўлса, соат 22:00 дан 08:00 гача ягона call-центрга қўнғироқ қилинг."
+    work_time: "Botimiz soat 09:00 dan 21:00 gacha faol. Soat 22:00 dan 08:00 gacha yagona call-markazga qo'ng'iroq qiling."
 }
