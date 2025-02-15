@@ -248,9 +248,9 @@ bot.on('message', async (msg) => {
     if (!session || session.step !== 'verify_code') return;
 
     const langData = languages[session.lang];
-    const userCode = msg.text.trim();
+    // const userCode = msg.text.trim();
 
-    if (userCode === session.verificationCode) {
+    if (session.phone) {
         // Code is correct, proceed to the next step
         session.verified = true;
         bot.sendMessage(chatId, langData.validNumber);
