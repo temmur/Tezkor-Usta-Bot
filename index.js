@@ -405,7 +405,8 @@ bot.on('message', (msg) => {
         // Use location in service request
         const location = JSON.parse(session?.location)
         const loc = JSON.stringify(session?.location)
-        bot.sendMessage(chatId, `${langData.selectedService || "Service selected:"} ${service} ${langData.in} ${location?.name || session?.location?.name}`);
+        console.log(session.location)
+        bot.sendMessage(chatId, `${langData.selectedService || "Service selected:"} ${service} ${langData.in} ${session.location.name || location.name }`);
     }
 });
 
