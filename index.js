@@ -119,7 +119,7 @@ bot.on("message", async (msg) => {
 async function startCommandHandler(chatId) {
     console.log('User chatId:', chatId);
     try {
-        const response = await axios.get(`https://tezkor-backend.onrender.com//api/users/check/${chatId}`);
+        const response = await axios.get(`https://tezkor-backend.onrender.com/api/users/check/${chatId}`);
         if (response.data.registered) {
             const langData = languages[response.data.user.language];
             userSessions[chatId] = {
