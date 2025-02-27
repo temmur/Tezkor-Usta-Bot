@@ -119,7 +119,7 @@ bot.on("message", async (msg) => {
 async function startCommandHandler(chatId) {
     console.log('User chatId:', chatId);
     try {
-        const response = await axios.get(`http://localhost:3000/api/users/check/${chatId}`);
+        const response = await axios.get(`https://tezkor-backend.onrender.com//api/users/check/${chatId}`);
         if (response.data.registered) {
             const langData = languages[response.data.user.language];
             userSessions[chatId] = {
@@ -263,7 +263,7 @@ bot.on('callback_query', async (query) => {
         const langData = languages[session.lang];
         session.location = selectedLocation; // Store location in session
         try{
-            const response = await fetch('http://localhost:3000/api/users/register', {
+            const response = await fetch('https://tezkor-backend.onrender.com/api/users/register', {
                 method: 'POST',
                 headers: {
                     "Content-Type": "application/json"
@@ -534,7 +534,7 @@ bot.on('callback_query', async (msg) => {
 
         // Обновляем язык в MongoDB через API
         try {
-            const response = await axios.patch(`http://localhost:3000/api/users/update-language/${chatId}`, {
+            const response = await axios.patch(`https://tezkor-backend.onrender.com/api/users/update-language/${chatId}`, {
                 language: langCode
             });
 
@@ -598,7 +598,7 @@ bot.on('message', async (msg)=>{
     if(text !== langData.settings.change_name && text !== langData.go_back.settings_goBack){
         try{
             //update name in session
-            const response = await axios.patch(`http://localhost:3000/api/users/update-name/${chatId}`, {
+            const response = await axios.patch(`https://tezkor-backend.onrender.com/api/users/update-name/${chatId}`, {
                 name: text
             })
             if(response.data.success){
@@ -848,7 +848,7 @@ async function processServiceRequest(session, chatId) {
     console.log("Mapped service:", serviceType);
 
     try {
-        const response = await fetch('http://localhost:3000/api/orders/create', {
+        const response = await fetch('https://tezkor-backend.onrender.com/api/orders/create', {
             method: "POST",
             headers: {
                 'Content-Type': "application/json"
