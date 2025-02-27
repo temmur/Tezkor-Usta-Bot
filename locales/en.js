@@ -65,5 +65,6 @@ module.exports={
     emergencyButton: "As soon as possible",
     chooseTime: 'Choose time',
     enterVerificationCode: 'Enter SMS verification',
-    working_time: "Our bot operates from 9:00 AM to 9:00 PM. If you require any service, please call our unified call center between 10:00 PM and 8:00 AM"
+    working_time: "Our bot operates from 9:00 AM to 9:00 PM. If you require any service, please call our unified call center between 10:00 PM and 8:00 AM",
+    choose_section: "Choose Section:"
 }

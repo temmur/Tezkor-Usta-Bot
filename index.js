@@ -68,6 +68,23 @@ const client = new twilio(accountSid, authToken);
 //         return false;
 //     }
 // }
+
+const serviceMapping = {
+    // Русские варианты
+    "🔧 Электрика": "Электрика",
+    "🚰 Сантехника": "Сантехника",
+    "🛠 Сварные услуги": "Сварные услуги",
+
+    // Английские варианты
+    "🔧 Electrician": "Электрика",
+    "🚰 Plumber": "Сантехника",
+    "🛠 Welding": "Сварные услуги",
+
+    // Узбекские варианты
+    "🔧 Elektrikа": "Электрика",
+    "🚰 Santexnikа": "Сантехника",
+    "🛠 Svarka xizmatlari": "Сварные услуги"
+};
 const getMainMenuKeyboard = (langData) => {
     return {
         reply_markup: JSON.stringify({
@@ -101,89 +118,45 @@ bot.on("message", async (msg) => {
 
 async function startCommandHandler(chatId) {
     console.log('User chatId:', chatId);
+    try {
+        const response = await axios.get(`http://localhost:3000/api/users/check/${chatId}`);
+        if (response.data.registered) {
+            const langData = languages[response.data.user.language];
+            userSessions[chatId] = {
+                step: 'main_menu',
+                lang: response.data.user.language,
+                location: response.data.user.city,
+                name: response.data.user.name,
+                phone: response.data.user.phone
+            }
+            console.log(response.data)
 
-    // Проверяем, зарегистрирован ли пользователь
-    const { data: user, error } = await supabase
-        .from('RegisteredUsers')
-        .select('*')
-        .eq('id', chatId)
-        .maybeSingle();
+            bot.sendMessage(chatId, langData.choose_section, getMainMenuKeyboard(langData));
+        }
+        else {
+            // Пользователь не зарегистрирован – предложим выбрать язык
+            bot.sendMessage(chatId, 'Пожалуйста, зарегистрируйтесь. Введите ваше имя:');
+            const options = {
+                reply_markup: JSON.stringify({
+                    inline_keyboard: [
+                        [{ text: 'English 🇺🇸', callback_data: 'lang_en' }],
+                        [{ text: 'Русский 🇷🇺', callback_data: 'lang_ru' }],
+                        [{ text: "O'zbekcha 🇺🇿", callback_data: 'lang_uz' }]
+                    ]
+                })
+            };
 
-    if (user && user.verified) {
-        // Пользователь уже зарегистрирован и верифицирован
-        const langData = languages[user.lang];
-        userSessions[chatId] = {
-            step: 'main_menu',
-            lang: user.lang,
-            location: user.address,
-            name: user.name,
-            phone: user.phone
-        };
-        console.log(userSessions[chatId]);
-        bot.sendMessage(chatId, langData.greeting, getMainMenuKeyboard(langData));
-        return;
+            bot.sendMessage(chatId, 'Choose language / Выберите язык / Tilni tanlang:', options);
+            userSessions[chatId] = { step: 'choose_lang' };
+            console.log('User session set to choose_lang:', userSessions[chatId]);
+            // Логика для регистрации
+        }
+    } catch (error) {
+        console.error('Ошибка при запросе к API:', error.response ? error.response.data : error.message);
+        bot.sendMessage(chatId, 'Ошибка при проверке регистрации.');
     }
 
-    // Пользователь не зарегистрирован – предложим выбрать язык
-    const options = {
-        reply_markup: JSON.stringify({
-            inline_keyboard: [
-                [{ text: 'English 🇺🇸', callback_data: 'lang_en' }],
-                [{ text: 'Русский 🇷🇺', callback_data: 'lang_ru' }],
-                [{ text: "O'zbekcha 🇺🇿", callback_data: 'lang_uz' }]
-            ]
-        })
-    };
-
-    bot.sendMessage(chatId, 'Choose language / Выберите язык / Tilni tanlang:', options);
-    userSessions[chatId] = { step: 'choose_lang' };
-    console.log('User session set to choose_lang:', userSessions[chatId]);
 }
-// bot.onText(/\/start/, async (msg) => {
-//     const chatId = msg.chat.id;
-//     // Log the chatId for debugging
-//     console.log('User chatId:', chatId);
-//
-//     // Check if the user is already registered and verified
-//     const { data: user, error } = await supabase
-//         .from('RegisteredUsers')
-//         .select('*')
-//         .eq('id', chatId)
-//         .maybeSingle(); // Use maybeSingle() to handle no rows found
-//     // Log the user data and error for debugging
-//     if (user && user.verified) {
-//         // User is already registered and verified, show main menu
-//         const langData = languages[user.lang];
-//         userSessions[chatId] = {
-//             step: 'main_menu',
-//             lang: user.lang,
-//             location: user.address,
-//             name: user.name,
-//             phone: user.phone
-//         };
-//         console.log(userSessions[chatId])
-//         bot.sendMessage(chatId, langData.greeting, getMainMenuKeyboard(langData));
-//         return;
-//     }
-//     // User is not registered or not verified, proceed to language selection
-//     const options = {
-//         reply_markup: JSON.stringify({
-//             inline_keyboard: [
-//                 [{ text: 'English 🇺🇸', callback_data: 'lang_en' }],
-//                 [{ text: 'Русский 🇷🇺', callback_data: 'lang_ru' }],
-//                 [{ text: 'O\'zbekcha 🇺🇿', callback_data: 'lang_uz' }]
-//             ]
-//         })
-//     };
-//
-//     bot.sendMessage(chatId, 'Choose language / Выберите язык / Tilni tanlang:', options);
-//
-//     userSessions[chatId] = {
-//         step: 'choose_lang'
-//     };
-//
-//     console.log('User session set to choose_lang:', userSessions[chatId]);
-// });
 
 bot.on('callback_query', (query)=> {
     const chatId = query.message.chat.id
@@ -235,7 +208,7 @@ bot.on('message', async (msg) => {
         // await sendVerificationCode(phone, verificationCode);
 
         // Prompt the user to enter the verification code
-        bot.sendMessage(chatId, langData.enterVerificationCode);
+        // bot.sendMessage(chatId, langData.enterVerificationCode);
         session.step = 'verify_code';
     } else {
         bot.sendMessage(chatId, langData.invalidNumberFormat || "Please provide a valid phone number");
@@ -289,39 +262,42 @@ bot.on('callback_query', async (query) => {
     if (selectedLocation) {
         const langData = languages[session.lang];
         session.location = selectedLocation; // Store location in session
-        const { data, error } = await supabase
-            .from('RegisteredUsers')
-            .insert([{
-                id: chatId, // Ensure this column exists in Supabase
-                phone: session.phone,
-                name: session.name,
-                lang: session.lang,
-                verified: true,
-                address: session.location,
-            }]);
+        try{
+            const response = await fetch('http://localhost:3000/api/users/register', {
+                method: 'POST',
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    chatId: chatId,
+                    name: session.name,
+                    phone: session.phone,
+                    city: session.location,
+                    language: session.lang,
+                })
+            })
+            const data = await response.json()
+            console.log('User data saved successfully:', data);
+            session.step = 'main_menu'; // Next step: request phone number
 
-        if (error) {
+            const mainMenuKeyboard = {
+                reply_markup: JSON.stringify({
+                    keyboard: [
+                        [langData.main_menu.services, langData.main_menu.worktime],
+                        [langData.main_menu.feedback, langData.main_menu.settings],
+                    ],
+                    resize_keyboard: true,
+                    one_time_keyboard: false
+                })
+            };
+            const videoPath = path.join(__dirname, 'public', 'images', 'Banner.mp4');
+            await bot.sendVideo(chatId, videoPath)
+            await bot.sendMessage(chatId, `${langData.location_selected.replace('{location}', selectedLocation.name)}\n${langData.greeting}`, mainMenuKeyboard);
+        }
+        catch (error){
             console.error('Error saving user data:', error);
             bot.sendMessage(chatId, langData.error_occurred || "An error occurred. Please try again.");
-            return;
         }
-
-        console.log('User data saved successfully:', data);
-        session.step = 'main_menu'; // Next step: request phone number
-
-        const mainMenuKeyboard = {
-            reply_markup: JSON.stringify({
-                keyboard: [
-                    [langData.main_menu.services, langData.main_menu.worktime],
-                    [langData.main_menu.feedback, langData.main_menu.settings],
-                ],
-                resize_keyboard: true,
-                one_time_keyboard: false
-            })
-        };
-        const videoPath = path.join(__dirname, 'public', 'images', 'Banner.mp4');
-        await bot.sendVideo(chatId, videoPath)
-        await bot.sendMessage(chatId, `${langData.location_selected.replace('{location}', selectedLocation.name)}\n${langData.greeting}`, mainMenuKeyboard);
     }
 });
 
@@ -412,6 +388,10 @@ bot.on('message', (msg) => {
         bot.sendMessage(chatId, `${langData.selectedService || "Service selected:"} ${service} ${langData.in} ${location?.name || 'Buxoro'}`);
     }
 });
+
+
+
+
 
 // Handle "Back to Main Menu" button
 bot.on('message', (msg) => {
@@ -513,17 +493,67 @@ bot.on('message', async (msg)=>{
         session.step = 'change_language';
     }
 })
-bot.on('callback_query', async (msg)=>{
-    const chatId = msg.message.chat.id
-    const session = userSessions[chatId]
-    if(!session || session.step !== 'change_language') return
-    const langCode = msg.data.split('_')[1]
-    if(['en', 'ru', 'uz'].includes(langCode)){
-        session.lang = langCode // Update language in session
-        session.step = 'setting_menu' // Stay in settings menu
-        const langData = languages[langCode]
-        await bot.sendMessage(chatId, langData.language_updated.replace('{language}', langCode))
+// bot.on('callback_query', async (msg)=>{
+//     const chatId = msg.message.chat.id
+//     const session = userSessions[chatId]
+//     if(!session || session.step !== 'change_language') return
+//     const langCode = msg.data.split('_')[1]
+//     if(['en', 'ru', 'uz'].includes(langCode)){
+//         session.lang = langCode // Update language in session
+//         session.step = 'setting_menu' // Stay in settings menu
+//         const langData = languages[langCode]
+//         await bot.sendMessage(chatId, langData.language_updated.replace('{language}', langCode))
+//
+//         const settingKeyboard = {
+//             reply_markup: JSON.stringify({
+//                 keyboard: [
+//                     [langData.goBack, langData.settings.change_name],
+//                     [langData.settings.change_city, langData.settings.change_language],
+//                     [langData.settings.logout]
+//                 ],
+//                 resize_keyboard: true,
+//                 one_time_keyboard: false
+//             })
+//         }
+//
+//         await bot.sendMessage(chatId, langData.choose_action, settingKeyboard)
+//     }
+// })
+bot.on('callback_query', async (msg) => {
+    const chatId = msg.message.chat.id;
+    const session = userSessions[chatId];
 
+    if (!session || session.step !== 'change_language') return;
+
+    const langCode = msg.data.split('_')[1]; // Например, 'lang_ru' -> 'ru'
+
+    if (['en', 'ru', 'uz'].includes(langCode)) {
+        // Обновляем язык в сессии
+        session.lang = langCode;
+        session.step = 'setting_menu'; // Возвращаемся в меню настроек
+
+        // Обновляем язык в MongoDB через API
+        try {
+            const response = await axios.patch(`http://localhost:3000/api/users/update-language/${chatId}`, {
+                language: langCode
+            });
+
+            if (response.data.success) {
+                console.log(`Language updated for user ${chatId}: ${langCode}`);
+            } else {
+                console.error('Failed to update language:', response.data.message);
+            }
+        } catch (error) {
+            console.error('Error updating language via API:', error);
+            await bot.sendMessage(chatId, 'Произошла ошибка при обновлении языка. Пожалуйста, попробуйте позже.');
+            return;
+        }
+
+        // Отправляем сообщение об успешном обновлении языка
+        const langData = languages[langCode];
+        await bot.sendMessage(chatId, langData.language_updated.replace('{language}', langCode));
+
+        // Возвращаем пользователя в меню настроек
         const settingKeyboard = {
             reply_markup: JSON.stringify({
                 keyboard: [
@@ -534,11 +564,12 @@ bot.on('callback_query', async (msg)=>{
                 resize_keyboard: true,
                 one_time_keyboard: false
             })
-        }
+        };
 
-        await bot.sendMessage(chatId, langData.choose_action, settingKeyboard)
+        await bot.sendMessage(chatId, langData.choose_action, settingKeyboard);
     }
-})
+});
+
 // Handle new name input with async/await and error handling
 bot.on('message', async (msg)=>{
     const chatId = msg.chat.id
@@ -567,25 +598,33 @@ bot.on('message', async (msg)=>{
     if(text !== langData.settings.change_name && text !== langData.go_back.settings_goBack){
         try{
             //update name in session
-            session.name = text
-
-
-            // Send confirmation message
-            await bot.sendMessage(chatId, langData.name_updated.replace('{name}', session.name))
-            // Return to settings menu
-            session.step = 'setting_menu';
-            const settingKeyboard = {
-                reply_markup: JSON.stringify({
-                    keyboard: [
-                        [langData.goBack, langData.settings.change_name],
-                        [langData.settings.change_city, langData.settings.change_language],
-                        [langData.settings.logout]
-                    ],
-                    resize_keyboard: true,
-                    one_time_keyboard: false
-                })
+            const response = await axios.patch(`http://localhost:3000/api/users/update-name/${chatId}`, {
+                name: text
+            })
+            if(response.data.success){
+                // Обновляем сессию только после успешного ответа от сервера
+                session.name = text
+                // Отправка подтверждения
+                await bot.sendMessage(chatId, langData.name_updated.replace('{name}', session.name));
+                // Send confirmation message
+                // Return to settings menu
+                session.step = 'setting_menu';
+                const settingKeyboard = {
+                    reply_markup: JSON.stringify({
+                        keyboard: [
+                            [langData.goBack, langData.settings.change_name],
+                            [langData.settings.change_city, langData.settings.change_language],
+                            [langData.settings.logout]
+                        ],
+                        resize_keyboard: true,
+                        one_time_keyboard: false
+                    })
+                }
+                await bot.sendMessage(chatId, langData.choose_action, settingKeyboard)
             }
-            await bot.sendMessage(chatId, langData.choose_action, settingKeyboard)
+            else {
+                throw new Error('Failed to update name');
+            }
         }catch (error){
             console.error('Error updating name:', error);
             bot.sendMessage(chatId, langData.error_occurred || "An error occurred. Please try again.");
@@ -603,6 +642,7 @@ bot.on('message', async (msg) => {
     const text = msg.text;
 
     if (Object.values(langData.services).includes(text)) {
+
         session.serviceRequest = {
             service: text,
             problemDescription: null,
@@ -787,45 +827,93 @@ bot.on('polling_error', (error)=>{
     console.error("Polling error:", error);
 })
 
+async function processServiceRequest(session, chatId) {
+    // Преобразуем название услуги в русский вариант
+    const serviceType = serviceMapping[session.serviceRequest.service.trim()] || session.serviceRequest.service.trim();
 
-
-async function processServiceRequest(session) {
     const requestData = {
-        user: session.phone,
+        chatId: chatId,
         name: session.name,
-        location: session.location.name || session.location,
-        service: session.serviceRequest.service,
-        problem_description: session.serviceRequest.problemDescription,
-        address: session.serviceRequest.address,
-        time_reservation: session.serviceRequest.time_reservation,
-        timestamp: new Date().toISOString()
+        number: session.phone,
+        serviceType: serviceType,  // Используем преобразованное название
+        problemDescription: session.serviceRequest.problemDescription,
+        location: session.serviceRequest.address,
+        time: session.serviceRequest.time_reservation,
+        status: "pending",
+        address: session.location.name,
+        createdAt: new Date().toISOString()
     };
 
-    // console.log('Data to insert:', requestData);
+    console.log("Original service:", session.serviceRequest.service);
+    console.log("Mapped service:", serviceType);
 
-    const { data, error } = await supabase
-        .from('Users')
-        .insert([requestData], { onConflict: ['id'] })
-        .eq('user', session.user);
-
-    if (error) {
-        console.error('Error inserting data into Supabase:', {
-            message: error.message,
-            code: error.code,
-            details: error.details,
-            hint: error.hint
+    try {
+        const response = await fetch('http://localhost:3000/api/orders/create', {
+            method: "POST",
+            headers: {
+                'Content-Type': "application/json"
+            },
+            body: JSON.stringify(requestData)
         });
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.message || 'Ошибка при отправке данных');
+        }
+
+        console.log('Данные успешно отправлены:', result);
+        return result;
+    } catch (error) {
+        console.error('Ошибка при отправке данных:', error);
         throw error;
     }
-
-    // console.log('Data inserted successfully:', data);
 }
+
+// async function processServiceRequest(session, chatId) {
+//     const requestData = {
+//         chatId: chatId,  // Добавили chatId
+//         name: session.name,
+//         number: session.phone,
+//         serviceType: session.serviceRequest.service,
+//         problemDescription: session.serviceRequest.problemDescription,
+//         location: session.serviceRequest.address,
+//         time: session.serviceRequest.time_reservation,
+//         status: "pending",
+//         address: session.location.name,
+//         createdAt: new Date().toISOString()
+//     };
+//     console.log(session)
+//     try{
+//         const response = await fetch('http://localhost:3000/api/orders/create', {
+//             method: "POST",
+//             headers: {
+//                 'Content-Type': "application/json"
+//             },
+//             body: JSON.stringify(requestData)
+//         })
+//         const result = await response.json();
+//
+//         if (!response.ok) {
+//              new Error(result.message || 'Ошибка при отправке данных');
+//         }
+//
+//         console.log('Данные успешно отправлены:', result);
+//         return result;
+//     }catch(error){
+//         console.error('Ошибка при отправке данных:', error);
+//         throw error;
+//     }
+//     // console.log('Data inserted successfully:', data);
+// }
+// Объект для маппинга услуг на русский язык
+
+// Функция перевода услуги в русский язык
 
 async function completeServiceRequest(chatId, session, langData) {
     try {
         // console.log('Completing service request:', session.serviceRequest);
         // console.log('this is session:' + session)
-        await processServiceRequest(session);
+        await processServiceRequest(session, chatId);
         delete session.serviceRequest;
         session.step = 'main_menu';
         const message = `
